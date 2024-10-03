@@ -15,8 +15,8 @@ clean:
     rm -rf coverage
     rm coverage.json
 
-run-script script:
-    npx hardhat run scripts/{{script}}.ts --network localhost
+run-script script network:
+    npx hardhat run scripts/{{script}}.ts --network {{network}}
 
 test:
     npx hardhat test
