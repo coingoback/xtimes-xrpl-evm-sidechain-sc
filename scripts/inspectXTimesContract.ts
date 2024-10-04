@@ -1,10 +1,13 @@
-import { viem } from "hardhat";
-import { xrplevmDevnet } from "../chains";
-
-import { config } from "hardhat";
+import { config, viem, network } from "hardhat";
+import { vars } from "hardhat/config";
 import { HttpNetworkAccountsConfig } from "hardhat/types";
 
-const { vars } = require("hardhat/config");
+import { formatUnits } from "viem";
+
+import { xrplevmDevnet } from "../chains";
+
+import "fs";
+import { existsSync } from "fs";
 
 async function getPublicClient() {
     return await viem.getPublicClient({ chain: xrplevmDevnet });
@@ -18,6 +21,10 @@ async function getWalletClient() {
 }
 
 async function getContractAt(contractName: string, address: `0x${string}`)  {
+    if (network.name === 'localhost') {
+        return await viem.getContractAt(contractName, address);
+    }
+
     const config = {
         client: {
             public: await getPublicClient(),
@@ -28,19 +35,40 @@ async function getContractAt(contractName: string, address: `0x${string}`)  {
     return await viem.getContractAt(contractName, address, config);
 }
 
+async function getContractAddress() {
+    const chainId = network.name === 'localhost' ? '31337' : network.config.chainId;
+
+    const ignitionPath = `ignition/deployments/chain-${chainId}/deployed_addresses.json`;
+
+    if (existsSync(ignitionPath)) {
+        const data = require(`../${ignitionPath}`);
+        return data["XTimesERC20Module#XTimesERC20"];
+    }
+
+    return vars.get('XTIMES_ERC20_ADDRESS');
+}
+
 function getExplorerUrl() {
     return xrplevmDevnet.blockExplorers.default.url;
 }
 
 async function main() {
-    const xtimesAddress = vars.get('XTIMES_ERC20_ADDRESS');
+    const xtimesAddress = await getContractAddress();
 
     const xtimes = await getContractAt("XTimesERC20", xtimesAddress);
 
     const name = await xtimes.read.name();
     const symbol = await xtimes.read.symbol();
-    const decimals = await xtimes.read.decimals();
-    const totalSupply = await xtimes.read.totalSupply();
+    const decimals = (await xtimes.read.decimals() as number);
+
+    const totalSupply:string = formatUnits(
+        (await xtimes.read.totalSupply() as bigint),
+        decimals
+    );
+    const maxSupply: string = formatUnits(
+        (await xtimes.read.maxSupply() as bigint),
+        decimals
+    );
 
     const explorerURL = getExplorerUrl();
 
@@ -50,6 +78,7 @@ async function main() {
         Symbol = ${symbol}
         Decimals = ${decimals}
         Total Supply = Ⓧ  ${totalSupply}
+        Max Supply = Ⓧ  ${maxSupply}
 
     Check contract on explorer: ${explorerURL}/address/${xtimesAddress}`;
 
