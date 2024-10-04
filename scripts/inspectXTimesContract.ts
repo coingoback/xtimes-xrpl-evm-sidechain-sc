@@ -51,7 +51,7 @@ async function main() {
         Decimals = ${decimals}
         Total Supply = Ⓧ  ${totalSupply}
 
-    Check contract on explorer: ${explorerURL}/${xtimesAddress}`;
+    Check contract on explorer: ${explorerURL}/address/${xtimesAddress}`;
 
     console.log(xtimesDeployedInfo);
 }
