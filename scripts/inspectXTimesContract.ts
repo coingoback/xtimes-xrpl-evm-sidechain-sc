@@ -49,6 +49,10 @@ async function getContractAddress() {
 }
 
 function getExplorerUrl() {
+    if (network.name === 'localhost') {
+        return 'https://simple-blockexplorer-erhant.vercel.app';
+    }
+
     return xrplevmDevnet.blockExplorers.default.url;
 }
 
