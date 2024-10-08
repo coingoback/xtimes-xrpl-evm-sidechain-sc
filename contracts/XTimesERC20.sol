@@ -29,13 +29,23 @@ contract XTimesERC20 is ERC20Capped, TreasuryOwnable {
         return cap();
     }
 
-    function mint(uint256 value) external canIssue(value) {
+    function establishTreasury(address treasureAddress) external onlyOwner {
+        _defineTreasureOnce(treasureAddress);
+        _mint(treasure(), INITIAL_TREASURE_SUPPLY * 10 ** decimals());
+    }
+
+    function issueTokensToTreasure(uint256 value) external canIssueTokensToTreasure(value) {
         require(value > 0, "Invalid amount: Must be greater than 0");
         _mint(treasure(), value);
     }
 
-    function establishTreasury(address treasureAddress) external onlyOwner {
-        _defineTreasureOnce(treasureAddress);
-        _mint(treasure(), INITIAL_TREASURE_SUPPLY * 10 ** decimals());
+    function burnFromTreasure(uint256 value) external canBurnTreasureFounds(value) {
+        require(value > 0, "Invalid amount: Must be greater than 0");
+        _burn(treasure(), value);
+    }
+
+    function transferFromTreasure(address to, uint256 value) external canMoveTreasureFounds(value) {
+        require(value > 0, "Invalid amount: Must be greater than 0");
+        _transfer(treasure(), to, value);
     }
 }

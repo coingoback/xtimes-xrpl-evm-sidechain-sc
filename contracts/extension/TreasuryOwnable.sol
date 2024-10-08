@@ -55,12 +55,12 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
         _setRoleAdmin(TREASURY_SECRETARY, TREASURY_SECRETARY_MANAGER);
     }
 
-    modifier canIssue(uint256 amount) {
+    modifier canIssueTokensToTreasure(uint256 amount) {
         _checkTreasureOperation(TreasureOperationType.IssueToken, TREASURY_TREASURER, amount);
         _;
     }
 
-    modifier canBurn(uint256 amount) {
+    modifier canBurnTreasureFounds(uint256 amount) {
         _checkTreasureOperation(TreasureOperationType.BurnToken, TREASURY_SECRETARY, amount);
         _;
     }
