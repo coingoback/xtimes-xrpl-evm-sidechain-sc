@@ -8,10 +8,13 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
     address private _treasure;
 
     /** @dev Can issue, pause, transfer and burn tokens directly from/to the treasure */
-    bytes32 public constant TREASURE_TREASURER_ROLE = keccak256("TREASURY_TREASURER");
+    bytes32 public constant TREASURY_TREASURER = keccak256("TREASURY_TREASURER");
 
     /** @dev Can transfer and burn directly from treasure */
-    bytes32 public constant TREASURE_SECRETARY_ROLE = keccak256("TREASURY_SECRETARY");
+    bytes32 public constant TREASURY_SECRETARY = keccak256("TREASURY_SECRETARY");
+
+    /** @dev Can appoint and dismiss secretaries  */
+    bytes32 public constant TREASURY_SECRETARY_MANAGER = keccak256("TREASURY_SECRETARY_MANAGER");
 
     enum TreasureOperationType {
         IssueToken,
@@ -45,32 +48,36 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
     event SecretaryAppointed(address secretary);
     event SecretaryDismissed(address secretary);
 
-    constructor() Ownable(_msgSender()) {}
+    constructor() Ownable(_msgSender()) {
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _grantRole(TREASURY_SECRETARY_MANAGER, _msgSender());
+
+        _setRoleAdmin(TREASURY_SECRETARY, TREASURY_SECRETARY_MANAGER);
+    }
 
     modifier canIssue(uint256 amount) {
-        _checkTreasureOperation(TreasureOperationType.IssueToken, TREASURE_TREASURER_ROLE, amount);
+        _checkTreasureOperation(TreasureOperationType.IssueToken, TREASURY_TREASURER, amount);
         _;
     }
 
     modifier canBurn(uint256 amount) {
-        _checkTreasureOperation(TreasureOperationType.BurnToken, TREASURE_SECRETARY_ROLE, amount);
+        _checkTreasureOperation(TreasureOperationType.BurnToken, TREASURY_SECRETARY, amount);
         _;
     }
 
     modifier canMoveTreasureFounds(uint256 amount) {
-        _checkTreasureOperation(TreasureOperationType.TransferToken, TREASURE_SECRETARY_ROLE, amount);
+        _checkTreasureOperation(TreasureOperationType.TransferToken, TREASURY_SECRETARY, amount);
         _;
     }
 
     modifier canAppointSecretary() {
-        address sender = _msgSender();
-        if (sender != owner() && !hasRole(TREASURE_TREASURER_ROLE, sender)) {
-            revert TreasuryUnauthorizedSecretaryAppointment(sender);
+        if (!_hasRole(TREASURY_SECRETARY_MANAGER)) {
+            revert TreasuryUnauthorizedSecretaryAppointment(_msgSender());
         }
         _;
     }
 
-    function _defineTreasureOnce(address treasureAccount) private onlyOwner {
+    function _defineTreasureOnce(address treasureAccount) internal onlyOwner {
         if (treasureAccount == address(0)) {
             revert TreasureInvalidAddress(treasureAccount);
         }
@@ -110,11 +117,11 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
     }
 
     function _getRole() private view returns (bytes32) {
-        if (_hasRole(TREASURE_TREASURER_ROLE)) {
-            return TREASURE_TREASURER_ROLE;
+        if (_hasRole(TREASURY_TREASURER)) {
+            return TREASURY_TREASURER;
         }
-        else if (_hasRole(TREASURE_TREASURER_ROLE)) {
-            return TREASURE_TREASURER_ROLE;
+        else if (_hasRole(TREASURY_SECRETARY)) {
+            return TREASURY_SECRETARY;
         }
 
         return 0;
@@ -123,13 +130,12 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
     function _hasMinimumRole(bytes32 minimumRole) private view returns(bool) {
         bytes32 role = _getRole();
 
-        bool hasMinimumRole = (minimumRole == TREASURE_TREASURER_ROLE)
-            ? role == TREASURE_TREASURER_ROLE
-            : (minimumRole == TREASURE_SECRETARY_ROLE)
-                ? role == TREASURE_TREASURER_ROLE
-                    || role == TREASURE_SECRETARY_ROLE
+        bool hasMinimumRole = (minimumRole == TREASURY_TREASURER)
+            ? role == TREASURY_TREASURER
+            : (minimumRole == TREASURY_SECRETARY)
+                ? role == TREASURY_TREASURER
+                    || role == TREASURY_SECRETARY
                 : false;
-
 
         return hasMinimumRole;
     }
@@ -152,42 +158,44 @@ abstract contract TreasuryOwnable is Ownable, AccessControl {
         return _treasure;
     }
 
-    function appointTreasurer(address treasurer) public onlyOwner {
+    function appointTreasurer(address treasurer) external onlyOwner {
         if (treasurer == address(0)) {
             revert TreasuryInvalidTresurer(treasurer);
         }
 
-        grantRole(TREASURE_TREASURER_ROLE, treasurer);
+        grantRole(TREASURY_TREASURER, treasurer);
+        grantRole(TREASURY_SECRETARY_MANAGER, treasurer);
 
         emit TreasurerAppointed(treasurer);
     }
 
-    function dismissTreasurer(address treasurer) public onlyOwner {
+    function dismissTreasurer(address treasurer) external onlyOwner {
         if (treasurer == address(0)) {
             revert TreasuryInvalidTresurer(treasurer);
         }
 
-        revokeRole(TREASURE_TREASURER_ROLE, treasurer);
+        revokeRole(TREASURY_TREASURER, treasurer);
+        revokeRole(TREASURY_SECRETARY_MANAGER, treasurer);
 
         emit TreasurerDismissed(treasurer);
     }
 
-    function appointSecretary(address secretary) public canAppointSecretary {
+    function appointSecretary(address secretary) external canAppointSecretary {
         if (secretary == address(0)) {
             revert TreasuryInvalidSecretary(secretary);
         }
 
-        grantRole(TREASURE_SECRETARY_ROLE, secretary);
+        grantRole(TREASURY_SECRETARY, secretary);
 
         emit SecretaryAppointed(secretary);
     }
 
-    function dismissSecretary(address secretary) public canAppointSecretary {
+    function dismissSecretary(address secretary) external canAppointSecretary {
         if (secretary == address(0)) {
             revert TreasuryInvalidSecretary(secretary);
         }
 
-        revokeRole(TREASURE_SECRETARY_ROLE, secretary);
+        revokeRole(TREASURY_SECRETARY, secretary);
 
         emit SecretaryDismissed(secretary);
     }
