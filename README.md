@@ -11,12 +11,23 @@ Smart Contract code for the `XTimes` **ERC20** Token from `Cointimes`, being dev
 
 Use `just` command to list available commands from `just` recipe.
 
+###### Start a local Hardhat node to interact with
 ```shell
-$just node # Start a local Hardhat node to interact with
-$just deploy XTimesERC20 localhost # Deploy the contract to running Hardhat local node
-$just run-script inspectXTimesContract localhost # Inspect information for deployed contract
-just run-script performXtimesFlow localhost # Interacts with the contract performing its initialization and establishing the treasury, appointing a treasurer and a secretary to perform issue(mint)/burn/transfer of XTimes tokens from/to the treasurer.
+just node
+```
 
+###### Deploy the contract to running Hardhat local node
+```shell
+just deploy XTimesERC20 localhost
+```
+
+###### Inspect information for deployed contract
+```shell
+just run-script inspectXTimesContract localhost
+```
+###### Interacts with the contract performing its initialization and establishing the treasury, appointing a treasurer and a secretary to perform issue(mint)/burn/transfer of XTimes tokens from/to the treasurer.
+```shell
+just run-script performXtimesFlow localhost 
 ```
 
 
